@@ -68,9 +68,24 @@ async function fetchLaunchPayloadFromToken(hashValue) {
     throw new Error(`Session token lookup failed with status ${lastStatus || 404}`);
 }
 
+async function fetchCurrentLaunchPayload() {
+    const response = await fetch("/api/proxy-session", {
+        cache: "no-store",
+        credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+        throw new Error(`Current session lookup failed with status ${response.status}`);
+    }
+
+    return response.json();
+}
+
 async function resolveLaunchPayload() {
     const hashValue = window.location.hash.substring(1);
-    if (!hashValue) return null;
+    if (!hashValue) {
+        return fetchCurrentLaunchPayload();
+    }
 
     const legacyPayload = decodeLegacyPayload(hashValue);
     if (legacyPayload?.u) {
@@ -81,8 +96,6 @@ async function resolveLaunchPayload() {
 }
 
 async function initNetworkEngine() {
-    if (window.location.hash.length <= 1) return;
-
     const form = document.getElementById("sj-form");
     const address = document.getElementById("sj-address");
     const searchEngine = document.getElementById("sj-search-engine");
