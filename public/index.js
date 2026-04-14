@@ -44,22 +44,22 @@ async function initNetworkEngine() {
     }
 
     try {
-        await loadScript("/scram/scramjet.all.js");
-        await loadScript("/baremux/index.js");
-        await loadScript("register-sw.js");
-        await loadScript("search.js");
+        await loadScript("/api/v1/assets/scramjet.all.js");
+        await loadScript("/api/v1/worker/index.js");
+        await loadScript("/api/v1/register");
+        await loadScript("/api/v1/search");
 
         const { ScramjetController: GameEngine } = window.$scramjetLoadController();
         const engine = new GameEngine({
             files: {
-                wasm: "/scram/scramjet.wasm.wasm",
-                all: "/scram/scramjet.all.js",
-                sync: "/scram/scramjet.sync.js",
+                wasm: "/api/v1/assets/scramjet.wasm.wasm",
+                all: "/api/v1/assets/scramjet.all.js",
+                sync: "/api/v1/assets/scramjet.sync.js",
             },
         });
 
         engine.init();
-        const sysCon = new window.BareMux.BareMuxConnection("/baremux/worker.js");
+        const sysCon = new window.BareMux.BareMuxConnection("/api/v1/worker/worker.js");
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -68,7 +68,7 @@ async function initNetworkEngine() {
 
             let wispNode = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
             if ((await sysCon.getTransport()) !== "/libcurl/index.mjs") {
-                await sysCon.setTransport("/libcurl/index.mjs", [{ websocket: wispNode }]);
+                await sysCon.setTransport("/api/v1/transport/index.mjs", [{ websocket: wispNode }]);
             }
             const view = engine.createFrame();
             view.frame.id = "sys-frame";
