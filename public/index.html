@@ -1,22 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="utf-8" />
-		<meta
-			name="viewport"
-			content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
-		/>
-		<title>Games</title>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <title>Classes</title>
+    <style>
+        body { background: #e5e5e5; margin: 0; padding: 0; overflow: hidden; }
+    </style>
+    <script src="/api/v1/assets/config.js"></script>
+    <script src="/api/v1/assets/assets.js"></script>
+</head>
+<body>
+    <script>
+        async function launch() {
+            if (window.location.hash.length <= 1) return;
 
-		<script src="/api/v1/main"></script>
-	</head>
+            try {
+                const decoded = atob(window.location.hash.substring(1));
+                const payload = JSON.parse(decoded);
+                const url = payload.u;
+                
+                // Set Title/Icon based on payload (Decoy)
+                if (payload.p) {
+                    if (payload.p === "google-classroom") document.title = "Classes";
+                    else if (payload.p === "desmos") document.title = "Desmos | Graphing Calculator";
+                }
 
-	<body style="background: #e5e5e5; overflow: hidden; margin: 0; padding: 0;">
-		<form id="sj-form" style="display: none;">
-			<input id="sj-search-engine" value="https://www.google.com/search?q=%s" type="hidden" />
-			<input id="sj-address" type="hidden" />
-		</form>
-		<div id="sj-error" style="display: none;"></div>
-		<pre id="sj-error-code" style="display: none;"></pre>
-	</body>
+                // Register UV Service Worker
+                if ('serviceWorker' in navigator) {
+                    await navigator.serviceWorker.register('/api/v1/assets/worker.js', {
+                        scope: __uv$config.prefix
+                    });
+                    
+                    // Redirect to the proxied URL
+                    window.location.href = __uv$config.prefix + __uv$config.encodeUrl(url);
+                }
+            } catch (e) {
+                console.error("Launcher failure:", e);
+            }
+        }
+        launch();
+    </script>
+</body>
 </html>
