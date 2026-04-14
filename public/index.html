@@ -7,12 +7,21 @@
     <style>
         body { background: #e5e5e5; margin: 0; padding: 0; overflow: hidden; }
     </style>
-    <script src="/api/v1/assets/config.js"></script>
     <script src="/api/v1/assets/assets.js"></script>
+    <script src="/api/v1/assets/config.js"></script>
 </head>
 <body>
     <script>
         async function launch() {
+            // Force clear old Scramjet service workers
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for(let reg of regs) {
+                    console.log("Unregistering old SW:", reg.active?.scriptURL);
+                    await reg.unregister();
+                }
+            }
+
             if (window.location.hash.length <= 1) return;
 
             try {
