@@ -7,7 +7,15 @@ const app = express();
 const server = http.createServer();
 const bare = createBareServer('/bare/');
 
-// Support stealthy api assets
+app.use((req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    if (req.url.endsWith('sw.js')) {
+        res.setHeader('Service-Worker-Allowed', '/');
+    }
+    next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
