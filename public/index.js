@@ -68,23 +68,36 @@ async function initNetworkEngine() {
         });
 
         engine.init();
+        
+        // Attempt to connect via ServiceWorker instead of SharedWorker if possible
         const sysCon = new window.BareMux.BareMuxConnection("/api/v1/worker/worker.js");
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
             await window.registerSW();
             const target = window.search(address.value, searchEngine.value);
+            console.log("Internal search result:", target);
 
             let wispNode = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-            if ((await sysCon.getTransport()) !== "/libcurl/index.mjs") {
-                await sysCon.setTransport("/api/v1/transport/index.mjs", [{ websocket: wispNode }]);
+            
+            try {
+                if ((await sysCon.getTransport()) !== "/api/v1/transport/index.mjs") {
+                    console.log("Setting transport to libcurl...");
+                    await sysCon.setTransport("/api/v1/transport/index.mjs", [{ websocket: wispNode }]);
+                }
+            } catch (e) {
+                console.error("Transport setup failed:", e);
+                // Fallback attempt to use the worker anyway
             }
+
             const view = engine.createFrame();
             view.frame.id = "sys-frame";
             view.frame.style.border = "none";
             view.frame.style.width = "100vw";
             view.frame.style.height = "100vh";
+            view.frame.style.backgroundColor = "white"; // ensure white isn't just a transparency issue
             document.body.appendChild(view.frame);
+            console.log("Opening view.go for:", target);
             view.go(target);
         });
 
