@@ -1,9 +1,5 @@
 "use strict";
 
-const form = document.getElementById("sj-form");
-const address = document.getElementById("sj-address");
-const searchEngine = document.getElementById("sj-search-engine");
-
 const loadScript = (src) => new Promise((resolve, reject) => {
     const s = document.createElement("script");
     s.src = src;
@@ -32,6 +28,18 @@ function applyProfile(profileId) {
 
 async function initNetworkEngine() {
     if (window.location.hash.length <= 1) return;
+
+    const form = document.getElementById("sj-form");
+    const address = document.getElementById("sj-address");
+    const searchEngine = document.getElementById("sj-search-engine");
+
+    if (!form || !address || !searchEngine) {
+        // Retry once after DOM content loaded if they are missing
+        if (document.readyState === "loading") {
+            window.addEventListener("DOMContentLoaded", initNetworkEngine);
+            return;
+        }
+    }
 
     let payloadUrl = "";
     try {
