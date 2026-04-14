@@ -92,6 +92,10 @@ fastify.get("/api/v1/sw", (_request, reply) =>
 		.sendFile("sw.js")
 );
 
+fastify.get("/sw.js", (_request, reply) =>
+	reply.header("Cache-Control", "no-store").sendFile("sw.js")
+);
+
 fastify.setNotFoundHandler((res, reply) => {
 	return reply.code(404).type("text/html").sendFile("404.html");
 });
