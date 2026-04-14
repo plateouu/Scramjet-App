@@ -85,7 +85,7 @@ async function initNetworkEngine() {
         }, 100);
 
     } catch (e) {
-        console.error("Engine failure");
+        console.error("Engine failure:", e);
     }
 }
 
