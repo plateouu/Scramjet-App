@@ -1,7 +1,7 @@
 importScripts("/api/v1/assets/scramjet.all.js");
 
 const { ScramjetServiceWorker } = $scramjetLoadWorker();
-const scramjet = new ScramjetServiceWorker();
+const scramjet = new ScramjetServiceWorker({ prefix: "/api/v1/net/" });
 
 async function handleRequest(event) {
 	await scramjet.loadConfig();

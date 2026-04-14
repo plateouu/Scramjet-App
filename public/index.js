@@ -59,6 +59,7 @@ async function initNetworkEngine() {
 
         const { ScramjetController: GameEngine } = window.$scramjetLoadController();
         const engine = new GameEngine({
+            prefix: "/api/v1/net/",
             files: {
                 wasm: "/api/v1/assets/scramjet.wasm.wasm",
                 all: "/api/v1/assets/scramjet.all.js",
