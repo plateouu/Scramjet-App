@@ -10,6 +10,12 @@ import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 
 const publicPath = fileURLToPath(new URL("../public/", import.meta.url));
+const publicEntrypoints = new Map([
+	["/api/v1/main", "index.js"],
+	["/api/v1/register", "register-sw.js"],
+	["/api/v1/search", "search.js"],
+	["/api/v1/sw", "sw.js"],
+]);
 
 // Wisp Configuration: Refer to the documentation at https://www.npmjs.com/package/@mercuryworkshop/wisp-js
 
@@ -47,8 +53,20 @@ fastify.register(fastifyStatic, {
 });
 
 fastify.register(fastifyStatic, {
+	root: scramjetPath,
+	prefix: "/api/v1/assets/",
+	decorateReply: false,
+});
+
+fastify.register(fastifyStatic, {
 	root: libcurlPath,
 	prefix: "/libcurl/",
+	decorateReply: false,
+});
+
+fastify.register(fastifyStatic, {
+	root: libcurlPath,
+	prefix: "/api/v1/transport/",
 	decorateReply: false,
 });
 
@@ -57,6 +75,16 @@ fastify.register(fastifyStatic, {
 	prefix: "/baremux/",
 	decorateReply: false,
 });
+
+fastify.register(fastifyStatic, {
+	root: baremuxPath,
+	prefix: "/api/v1/worker/",
+	decorateReply: false,
+});
+
+for (const [route, file] of publicEntrypoints) {
+	fastify.get(route, (_request, reply) => reply.sendFile(file));
+}
 
 fastify.setNotFoundHandler((res, reply) => {
 	return reply.code(404).type("text/html").sendFile("404.html");

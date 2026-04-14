@@ -67,10 +67,9 @@ async function initNetworkEngine() {
             },
         });
 
-        engine.init();
-        
-        // Connect BareMux using the Service Worker directly to bypass SharedWorker security restrictions
-        const sysCon = new window.BareMux.BareMuxConnection();
+        await engine.init();
+
+        const sysCon = new window.BareMux.BareMuxConnection("/api/v1/worker/worker.js");
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -81,9 +80,8 @@ async function initNetworkEngine() {
             let wispNode = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
             
             try {
-                // Force libcurl transport through the ServiceWorker interface
                 if ((await sysCon.getTransport()) !== "/api/v1/transport/index.mjs") {
-                    console.log("Setting transport to libcurl via SW...");
+                    console.log("Setting transport to libcurl...");
                     await sysCon.setTransport("/api/v1/transport/index.mjs", [{ websocket: wispNode }]);
                 }
             } catch (e) {
@@ -94,11 +92,9 @@ async function initNetworkEngine() {
             view.frame.id = "sys-frame";
             view.frame.style.cssText = "border:none;width:100vw;height:100vh;background:white;";
             document.body.appendChild(view.frame);
-            
-            // Hardcoded manual navigation to ensure we hit our stealthy SW prefix
-            const proxiedUrl = location.origin + "/api/v1/net/" + target;
-            console.log("Navigating frame directly to:", proxiedUrl);
-            view.frame.src = proxiedUrl;
+
+            console.log("Navigating frame via Scramjet to:", target);
+            view.go(target);
         });
 
         address.value = payloadUrl;
