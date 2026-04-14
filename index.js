@@ -48,7 +48,11 @@ function getActiveTarget(req) {
 app.get('/_proxy/set', (req, res) => {
     const target = req.query.url;
     if (target) {
-        res.cookie('proxy_target', Buffer.from(target).toString('base64'), { httpOnly: true });
+        res.cookie('proxy_target', Buffer.from(target).toString('base64'), { 
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none'
+        });
         // The study-portal uses popup, so just redirect to / to start the proxying
         res.redirect('/');
     } else {
