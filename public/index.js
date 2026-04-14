@@ -36,6 +36,16 @@ function decodeLegacyPayload(hashValue) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function refreshBareMuxPorts() {
+    try {
+        const channel = new BroadcastChannel("bare-mux");
+        channel.postMessage({ type: "refreshPort" });
+        channel.close();
+    } catch (e) {
+        console.warn("Unable to broadcast bare-mux port refresh.", e);
+    }
+}
+
 async function fetchLaunchPayloadFromToken(hashValue) {
     const lookupUrls = [
         `/api/proxy-session?token=${encodeURIComponent(hashValue)}`,
@@ -82,6 +92,7 @@ async function fetchCurrentLaunchPayload() {
 }
 
 async function ensureBareMuxTransport(wispNode) {
+    refreshBareMuxPorts();
     localStorage.removeItem("bare-mux-path");
 
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -96,6 +107,7 @@ async function ensureBareMuxTransport(wispNode) {
             return;
         } catch (e) {
             console.warn("Bare-mux transport initialization failed, retrying with a fresh worker port...", e);
+            refreshBareMuxPorts();
             localStorage.removeItem("bare-mux-path");
 
             if (attempt === 1) {
