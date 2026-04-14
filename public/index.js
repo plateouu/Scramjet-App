@@ -81,6 +81,30 @@ async function fetchCurrentLaunchPayload() {
     return response.json();
 }
 
+async function ensureBareMuxTransport(wispNode) {
+    localStorage.removeItem("bare-mux-path");
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const sysCon = new window.BareMux.BareMuxConnection("/api/v1/worker/worker.js");
+
+        try {
+            if ((await sysCon.getTransport()) !== "/api/v1/transport/index.mjs") {
+                console.log("Setting transport to libcurl...");
+                await sysCon.setTransport("/api/v1/transport/index.mjs", [{ websocket: wispNode }]);
+            }
+
+            return;
+        } catch (e) {
+            console.warn("Bare-mux transport initialization failed, retrying with a fresh worker port...", e);
+            localStorage.removeItem("bare-mux-path");
+
+            if (attempt === 1) {
+                throw e;
+            }
+        }
+    }
+}
+
 async function resolveLaunchPayload() {
     const hashValue = window.location.hash.substring(1);
     if (!hashValue) {
@@ -138,8 +162,6 @@ async function initNetworkEngine() {
 
         await engine.init();
 
-        const sysCon = new window.BareMux.BareMuxConnection("/api/v1/worker/worker.js");
-
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
             await window.registerSW();
@@ -149,10 +171,7 @@ async function initNetworkEngine() {
             let wispNode = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
             
             try {
-                if ((await sysCon.getTransport()) !== "/api/v1/transport/index.mjs") {
-                    console.log("Setting transport to libcurl...");
-                    await sysCon.setTransport("/api/v1/transport/index.mjs", [{ websocket: wispNode }]);
-                }
+                await ensureBareMuxTransport(wispNode);
             } catch (e) {
                 console.error("Transport setup failed:", e);
             }
