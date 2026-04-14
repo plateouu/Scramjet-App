@@ -9,7 +9,10 @@
   "dependencies": {
     "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
     "@tomphttp/bare-server-node": "^2.0.6",
+    "cookie": "^1.1.1",
+    "cookie-parser": "^1.4.7",
     "express": "^4.22.1",
+    "http-proxy": "^1.18.1",
     "http-proxy-lite": "^1.0.0",
     "ws": "^8.20.0"
   }
