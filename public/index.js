@@ -26,6 +26,35 @@ function applyProfile(profileId) {
     }
 }
 
+function decodeLegacyPayload(hashValue) {
+    try {
+        return JSON.parse(atob(hashValue));
+    } catch {
+        return null;
+    }
+}
+
+async function resolveLaunchPayload() {
+    const hashValue = window.location.hash.substring(1);
+    if (!hashValue) return null;
+
+    const legacyPayload = decodeLegacyPayload(hashValue);
+    if (legacyPayload?.u) {
+        return legacyPayload;
+    }
+
+    const response = await fetch(`/api/proxy-session/${encodeURIComponent(hashValue)}`, {
+        cache: "no-store",
+        credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+        throw new Error(`Session token lookup failed with status ${response.status}`);
+    }
+
+    return response.json();
+}
+
 async function initNetworkEngine() {
     if (window.location.hash.length <= 1) return;
 
@@ -43,12 +72,14 @@ async function initNetworkEngine() {
 
     let payloadUrl = "";
     try {
-        const decoded = atob(window.location.hash.substring(1));
-        const payload = JSON.parse(decoded);
+        const payload = await resolveLaunchPayload();
+        if (!payload?.u) return;
         payloadUrl = payload.u;
         applyProfile(payload.p);
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
     } catch (e) {
-        return; // silently fail
+        console.error("Failed to resolve launch payload:", e);
+        return;
     }
 
     try {
@@ -90,7 +121,7 @@ async function initNetworkEngine() {
 
             const view = engine.createFrame();
             view.frame.id = "sys-frame";
-            view.frame.style.cssText = "border:none;width:100vw;height:100vh;background:white;";
+            view.frame.style.cssText = "border:none;width:100vw;height:100vh;background:#000;";
             document.body.appendChild(view.frame);
 
             console.log("Navigating frame via Scramjet to:", target);

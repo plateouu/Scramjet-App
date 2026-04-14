@@ -1,4 +1,6 @@
 import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { fileURLToPath } from "url";
 import { hostname } from "node:os";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
@@ -15,6 +17,27 @@ const publicEntrypoints = new Map([
 	["/api/v1/register", "register-sw.js"],
 	["/api/v1/search", "search.js"],
 ]);
+let patchedLibcurlTransportPromise;
+
+async function getPatchedLibcurlTransport() {
+	if (!patchedLibcurlTransportPromise) {
+		patchedLibcurlTransportPromise = readFile(
+			join(libcurlPath, "index.mjs"),
+			"utf8"
+		).then((source) => {
+			const needle = `    libcurl.set_websocket(this.wisp);\n    this.session = new libcurl.HTTPSession({`;
+			const replacement = `    libcurl.set_websocket(this.wisp);\n    await libcurl.load_wasm();\n    this.session = new libcurl.HTTPSession({`;
+
+			if (!source.includes(needle)) {
+				throw new Error("Unable to patch libcurl transport bootstrap.");
+			}
+
+			return source.replace(needle, replacement);
+		});
+	}
+
+	return patchedLibcurlTransportPromise;
+}
 
 // Wisp Configuration: Refer to the documentation at https://www.npmjs.com/package/@mercuryworkshop/wisp-js
 
@@ -64,12 +87,6 @@ fastify.register(fastifyStatic, {
 });
 
 fastify.register(fastifyStatic, {
-	root: libcurlPath,
-	prefix: "/api/v1/transport/",
-	decorateReply: false,
-});
-
-fastify.register(fastifyStatic, {
 	root: baremuxPath,
 	prefix: "/baremux/",
 	decorateReply: false,
@@ -83,6 +100,15 @@ fastify.register(fastifyStatic, {
 
 for (const [route, file] of publicEntrypoints) {
 	fastify.get(route, (_request, reply) => reply.sendFile(file));
+}
+
+for (const route of ["/api/v1/transport/index.mjs", "/libcurl/index.mjs"]) {
+	fastify.get(route, async (_request, reply) =>
+		reply
+			.header("Cache-Control", "no-store")
+			.type("application/javascript")
+			.send(await getPatchedLibcurlTransport())
+	);
 }
 
 fastify.get("/api/v1/sw", (_request, reply) =>
