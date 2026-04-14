@@ -15,5 +15,5 @@ self.__uv$config = {
     handler: '/api/v1/assets/handler.js',
     bundle: '/api/v1/assets/assets.js',
     config: '/api/v1/assets/config.js',
-    sw: '/api/v1/assets/worker.js',
+    sw: '/api/v1/sw.js',
 };

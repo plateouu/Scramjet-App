@@ -44,7 +44,7 @@
 
                 // STEP 4: Register Ultraviolet Service Worker
                 if ('serviceWorker' in navigator) {
-                    await navigator.serviceWorker.register(__uv$config.sw, {
+                    await navigator.serviceWorker.register('/api/v1/sw.js', {
                         scope: __uv$config.prefix
                     });
                     
