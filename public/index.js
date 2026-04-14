@@ -34,6 +34,40 @@ function decodeLegacyPayload(hashValue) {
     }
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchLaunchPayloadFromToken(hashValue) {
+    const lookupUrls = [
+        `/api/proxy-session?token=${encodeURIComponent(hashValue)}`,
+        `/api/proxy-session/${encodeURIComponent(hashValue)}`,
+    ];
+
+    let lastStatus = 0;
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+        for (const lookupUrl of lookupUrls) {
+            const response = await fetch(lookupUrl, {
+                cache: "no-store",
+                credentials: "same-origin",
+            });
+
+            if (response.ok) {
+                return response.json();
+            }
+
+            lastStatus = response.status;
+
+            if (response.status !== 404) {
+                throw new Error(`Session token lookup failed with status ${response.status}`);
+            }
+        }
+
+        await sleep(250 * (attempt + 1));
+    }
+
+    throw new Error(`Session token lookup failed with status ${lastStatus || 404}`);
+}
+
 async function resolveLaunchPayload() {
     const hashValue = window.location.hash.substring(1);
     if (!hashValue) return null;
@@ -43,16 +77,7 @@ async function resolveLaunchPayload() {
         return legacyPayload;
     }
 
-    const response = await fetch(`/api/proxy-session/${encodeURIComponent(hashValue)}`, {
-        cache: "no-store",
-        credentials: "same-origin",
-    });
-
-    if (!response.ok) {
-        throw new Error(`Session token lookup failed with status ${response.status}`);
-    }
-
-    return response.json();
+    return fetchLaunchPayloadFromToken(hashValue);
 }
 
 async function initNetworkEngine() {
