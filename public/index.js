@@ -1,75 +1,61 @@
 "use strict";
-/**
- * @type {HTMLFormElement}
- */
+
 const form = document.getElementById("sj-form");
-/**
- * @type {HTMLInputElement}
- */
 const address = document.getElementById("sj-address");
-/**
- * @type {HTMLInputElement}
- */
 const searchEngine = document.getElementById("sj-search-engine");
-/**
- * @type {HTMLParagraphElement}
- */
-const error = document.getElementById("sj-error");
-/**
- * @type {HTMLPreElement}
- */
-const errorCode = document.getElementById("sj-error-code");
 
-const { ScramjetController } = $scramjetLoadController();
-
-const scramjet = new ScramjetController({
-	files: {
-		wasm: "/scram/scramjet.wasm.wasm",
-		all: "/scram/scramjet.all.js",
-		sync: "/scram/scramjet.sync.js",
-	},
+const loadScript = (src) => new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
 });
 
-scramjet.init();
+async function initProxy() {
+    if (window.location.hash.length <= 1) return;
 
-const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+    try {
+        await loadScript("/scram/scramjet.all.js");
+        await loadScript("/baremux/index.js");
+        await loadScript("register-sw.js");
+        await loadScript("search.js");
 
-form.addEventListener("submit", async (event) => {
-	event.preventDefault();
+        const { ScramjetController } = window.$scramjetLoadController();
+        const scramjet = new ScramjetController({
+            files: {
+                wasm: "/scram/scramjet.wasm.wasm",
+                all: "/scram/scramjet.all.js",
+                sync: "/scram/scramjet.sync.js",
+            },
+        });
 
-	try {
-		await registerSW();
-	} catch (err) {
-		error.textContent = "Failed to register service worker.";
-		errorCode.textContent = err.toString();
-		throw err;
-	}
+        scramjet.init();
+        const connection = new window.BareMux.BareMuxConnection("/baremux/worker.js");
 
-	const url = search(address.value, searchEngine.value);
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            await window.registerSW();
+            const url = window.search(address.value, searchEngine.value);
 
-	let wispUrl =
-		(location.protocol === "https:" ? "wss" : "ws") +
-		"://" +
-		location.host +
-		"/wisp/";
-	if ((await connection.getTransport()) !== "/libcurl/index.mjs") {
-		await connection.setTransport("/libcurl/index.mjs", [
-			{ websocket: wispUrl },
-		]);
-	}
-	const frame = scramjet.createFrame();
-	frame.frame.id = "sj-frame";
-	document.body.appendChild(frame.frame);
-	frame.go(url);
-});
+            let wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+            if ((await connection.getTransport()) !== "/libcurl/index.mjs") {
+                await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
+            }
+            const frame = scramjet.createFrame();
+            frame.frame.id = "sj-frame";
+            document.body.appendChild(frame.frame);
+            frame.go(url);
+        });
 
-if (window.location.hash.length > 1) {
-	try {
-		address.value = atob(window.location.hash.substring(1));
-		setTimeout(() => {
-			form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
-		}, 100);
-	} catch (e) {
-		console.error("Invalid URL payload");
-	}
+        address.value = atob(window.location.hash.substring(1));
+        setTimeout(() => {
+            form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+        }, 100);
+
+    } catch (e) {
+        console.error("init fail");
+    }
 }
+
+initProxy();
