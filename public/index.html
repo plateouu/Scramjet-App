@@ -1,61 +1,68 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
     <title>Classes</title>
     <style>
-        body { background: #e5e5e5; margin: 0; padding: 0; overflow: hidden; }
+        body { background: #000; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh; }
+        iframe { border: none; width: 100%; height: 100%; }
+        .loading {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #fff; font-family: system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;
+        }
     </style>
     <!-- Order matters: Library first, then Config -->
-    <script src="/api/v1/assets/assets.js"></script>
-    <script src="/api/v1/assets/config.js"></script>
+    <script src="baremux/index.js"></script>
+    <script src="uv/uv.bundle.js"></script>
+    <script src="uv/uv.config.js"></script>
+    <script src="register-sw.js"></script>
 </head>
 <body>
-    <script>
-        async function launch() {
-            // STEP 1: Nuclear purge of any old service workers (Scramjet/Zombie-UV)
-            if ('serviceWorker' in navigator) {
-                try {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    for(let reg of regs) {
-                        console.log("Purging old service worker:", reg.active?.scriptURL);
-                        await reg.unregister();
-                    }
-                } catch (e) {
-                    console.warn("SW Clear failed, continuing anyway:", e);
-                }
-            }
+    <div class="loading" id="loader">Initializing Secure Connection...</div>
+    <iframe style="display: none" id="uv-frame" allow="fullscreen; camera; microphone; display-capture; clipboard-read; clipboard-write; autoplay"></iframe>
 
+    <script>
+        const loader = document.getElementById("loader");
+        const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+
+        async function launch() {
             if (window.location.hash.length <= 1) {
-                console.log("No payload found in hash.");
+                loader.textContent = "No payload found.";
                 return;
             }
 
             try {
-                // STEP 2: Decode payload
+                // Decode payload
                 const decoded = atob(window.location.hash.substring(1));
                 const payload = JSON.parse(decoded);
                 const url = payload.u;
-                
-                // STEP 3: Decoy update
-                if (payload.p === "google-classroom") document.title = "Classes";
-                else if (payload.p === "desmos") document.title = "Desmos | Graphing Calculator";
 
-                // STEP 4: Register Ultraviolet Service Worker
-                if ('serviceWorker' in navigator) {
-                    await navigator.serviceWorker.register('/api/v1/sw.js', {
-                        scope: __uv$config.prefix
-                    });
-                    
-                    // STEP 5: Launch
-                    window.location.href = __uv$config.prefix + __uv$config.encodeUrl(url);
+                // Register Ultraviolet Service Worker
+                await registerSW();
+
+                // Connect to WISP transport (required by UV v3)
+                let wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+                if ((await connection.getTransport()) !== "/epoxy/index.mjs") {
+                    await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
                 }
+
+                // Launch the target url
+                let frame = document.getElementById("uv-frame");
+                frame.src = __uv$config.prefix + __uv$config.encodeUrl(url);
+                
+                frame.onload = () => {
+                    loader.style.display = "none";
+                    frame.style.display = "block";
+                };
             } catch (e) {
                 console.error("Critical Launcher failure:", e);
-                document.body.style.background = "#ca4754"; // Red background on fail
+                loader.textContent = "Initialization Failed";
+                loader.style.background = "#ca4754"; // Red background on fail
             }
         }
+        
         launch();
     </script>
 </body>
