@@ -62,3 +62,14 @@ form.addEventListener("submit", async (event) => {
 	document.body.appendChild(frame.frame);
 	frame.go(url);
 });
+
+if (window.location.hash.length > 1) {
+	try {
+		address.value = atob(window.location.hash.substring(1));
+		setTimeout(() => {
+			form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+		}, 100);
+	} catch (e) {
+		console.error("Invalid URL payload");
+	}
+}
