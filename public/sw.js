@@ -4,9 +4,13 @@ const { ScramjetServiceWorker } = $scramjetLoadWorker();
 const scramjet = new ScramjetServiceWorker({ prefix: "/api/v1/net/" });
 
 async function handleRequest(event) {
-	await scramjet.loadConfig();
-	if (scramjet.route(event)) {
-		return scramjet.fetch(event);
+	try {
+		await scramjet.loadConfig();
+		if (scramjet.route(event)) {
+			return scramjet.fetch(event);
+		}
+	} catch (err) {
+		console.error("SW Fetch Error for:", event.request.url, err);
 	}
 	return fetch(event.request);
 }
