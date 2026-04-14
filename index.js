@@ -78,6 +78,13 @@ app.use((req, res, next) => {
         // Fallback or setup screen
         return res.status(404).send('No active proxy session.');
     }
+    
+    try {
+        const tUrl = new URL(target);
+        if (req.headers.origin) req.headers.origin = tUrl.origin;
+        if (req.headers.referer) req.headers.referer = tUrl.href;
+    } catch {}
+
     proxy.web(req, res, { target });
 });
 
@@ -91,6 +98,10 @@ server.on('upgrade', (req, socket, head) => {
         if (cookies.proxy_target) {
             try {
                 const target = Buffer.from(cookies.proxy_target, 'base64').toString('utf-8');
+                const tUrl = new URL(target);
+                if (req.headers.origin) req.headers.origin = tUrl.origin;
+                if (req.headers.referer) req.headers.referer = tUrl.href;
+
                 proxy.ws(req, socket, head, { target });
                 return;
             } catch {}
