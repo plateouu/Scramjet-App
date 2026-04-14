@@ -1,5 +1,5 @@
 {
-  "name": "plateou-proxy-uv",
+  "name": "plateou-proxy-v3",
   "version": "1.0.0",
   "description": "Stealth Ultraviolet Proxy Service",
   "main": "index.js",
@@ -8,9 +8,9 @@
   },
   "dependencies": {
     "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
-    "@tomphttp/bare-server-node": "^2.0.1",
-    "express": "^4.18.2",
+    "@tomphttp/bare-server-node": "^2.0.6",
+    "express": "^4.22.1",
     "http-proxy-lite": "^1.0.0",
-    "ws": "^8.13.0"
+    "ws": "^8.20.0"
   }
 }

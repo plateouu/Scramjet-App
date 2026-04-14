@@ -7,45 +7,53 @@
     <style>
         body { background: #e5e5e5; margin: 0; padding: 0; overflow: hidden; }
     </style>
+    <!-- Order matters: Library first, then Config -->
     <script src="/api/v1/assets/assets.js"></script>
     <script src="/api/v1/assets/config.js"></script>
 </head>
 <body>
     <script>
         async function launch() {
-            // Force clear old Scramjet service workers
+            // STEP 1: Nuclear purge of any old service workers (Scramjet/Zombie-UV)
             if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for(let reg of regs) {
-                    console.log("Unregistering old SW:", reg.active?.scriptURL);
-                    await reg.unregister();
+                try {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for(let reg of regs) {
+                        console.log("Purging old service worker:", reg.active?.scriptURL);
+                        await reg.unregister();
+                    }
+                } catch (e) {
+                    console.warn("SW Clear failed, continuing anyway:", e);
                 }
             }
 
-            if (window.location.hash.length <= 1) return;
+            if (window.location.hash.length <= 1) {
+                console.log("No payload found in hash.");
+                return;
+            }
 
             try {
+                // STEP 2: Decode payload
                 const decoded = atob(window.location.hash.substring(1));
                 const payload = JSON.parse(decoded);
                 const url = payload.u;
                 
-                // Set Title/Icon based on payload (Decoy)
-                if (payload.p) {
-                    if (payload.p === "google-classroom") document.title = "Classes";
-                    else if (payload.p === "desmos") document.title = "Desmos | Graphing Calculator";
-                }
+                // STEP 3: Decoy update
+                if (payload.p === "google-classroom") document.title = "Classes";
+                else if (payload.p === "desmos") document.title = "Desmos | Graphing Calculator";
 
-                // Register UV Service Worker
+                // STEP 4: Register Ultraviolet Service Worker
                 if ('serviceWorker' in navigator) {
-                    await navigator.serviceWorker.register('/api/v1/assets/worker.js', {
+                    await navigator.serviceWorker.register(__uv$config.sw, {
                         scope: __uv$config.prefix
                     });
                     
-                    // Redirect to the proxied URL
+                    // STEP 5: Launch
                     window.location.href = __uv$config.prefix + __uv$config.encodeUrl(url);
                 }
             } catch (e) {
-                console.error("Launcher failure:", e);
+                console.error("Critical Launcher failure:", e);
+                document.body.style.background = "#ca4754"; // Red background on fail
             }
         }
         launch();

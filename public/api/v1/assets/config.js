@@ -9,7 +9,7 @@ self.__uv$config = {
         if (!str) return str;
         let [input, ...search] = str.split('?');
         let decoded = decodeURIComponent(input);
-        let result = decoded.split('').map((char, ind) => ind % 2 ? String.fromCharCode(char.charCodeAt() ^ 2) : char).join('');
+        let result = decoded.split('').map((char, ind) => ind % 2 ? String.fromCharCode(decoded.charCodeAt() ^ 2) : char).join('');
         return result + (search.length ? '?' + search.join('?') : '');
     },
     handler: '/api/v1/assets/handler.js',
