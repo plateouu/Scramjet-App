@@ -27,8 +27,19 @@ proxy.on('proxyRes', (proxyRes, req, res) => {
     delete proxyRes.headers['content-security-policy'];
     delete proxyRes.headers['content-security-policy-report-only'];
 
-    // Also rewrite set-cookie domains if needed so the proxy doesn't lose cookies
-    // Usually target domain cookies are set and we need to pass them through
+    // Rewrite set-cookie domains and samesite so the proxy doesn't lose cookies in an iframe
+    if (proxyRes.headers['set-cookie']) {
+        proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie'].map(cookieStr => {
+            let rewritten = cookieStr;
+            // Strip any explicit Domain restricting it to getscreen.me
+            rewritten = rewritten.replace(/;\s*Domain=[^;]+/ig, '');
+            // Strip any existing SameSite or Secure to avoid duplicates
+            rewritten = rewritten.replace(/;\s*SameSite=[^;]+/ig, '');
+            rewritten = rewritten.replace(/;\s*Secure/ig, '');
+            // Force compatibility for iframe
+            return rewritten + '; SameSite=None; Secure';
+        });
+    }
 });
 
 // Helper to determine active target
