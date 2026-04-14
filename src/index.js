@@ -14,7 +14,6 @@ const publicEntrypoints = new Map([
 	["/api/v1/main", "index.js"],
 	["/api/v1/register", "register-sw.js"],
 	["/api/v1/search", "search.js"],
-	["/api/v1/sw", "sw.js"],
 ]);
 
 // Wisp Configuration: Refer to the documentation at https://www.npmjs.com/package/@mercuryworkshop/wisp-js
@@ -85,6 +84,13 @@ fastify.register(fastifyStatic, {
 for (const [route, file] of publicEntrypoints) {
 	fastify.get(route, (_request, reply) => reply.sendFile(file));
 }
+
+fastify.get("/api/v1/sw", (_request, reply) =>
+	reply
+		.header("Service-Worker-Allowed", "/")
+		.header("Cache-Control", "no-store")
+		.sendFile("sw.js")
+);
 
 fastify.setNotFoundHandler((res, reply) => {
 	return reply.code(404).type("text/html").sendFile("404.html");
